@@ -1,0 +1,127 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function role() {
+      return isSignedIn()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
+    }
+    function isAdmin() {
+      return role() == 'admin';
+    }
+    function isInstructor() {
+      return role() == 'instructor' || isAdmin();
+    }
+
+    // ---- users ----
+    // A user can read/update their own doc. Nobody may set their own role —
+    // role changes must go through the Firebase Console or a trusted admin script.
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && request.resource.data.role == 'student';
+      allow update: if isOwner(uid) && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    // ---- courses / lessons / projects / challenges ----
+    // Publicly readable when published; only instructors/admins can write.
+    match /courses/{courseId} {
+      allow read: if resource.data.published == true || isInstructor();
+      allow write: if isInstructor();
+
+      match /lessons/{lessonId} {
+        allow read: if isSignedIn();
+        allow write: if isInstructor();
+      }
+    }
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isInstructor();
+    }
+    match /challenges/{challengeId} {
+      allow read: if true;
+      allow write: if isInstructor();
+    }
+
+    // ---- enrollments & progress ----
+    // A user only ever touches their own enrollment docs (id is `${uid}_${courseId}`).
+    match /enrollments/{enrollmentId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && enrollmentId == request.auth.uid + '_' + request.resource.data.courseId;
+      allow update: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // ---- submissions ----
+    match /submissions/{submissionId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isInstructor());
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isInstructor();
+    }
+
+    // ---- certificates ----
+    // Owner + admin can read privately; verification page reads by known ID only
+    // (no public list query), so certificates aren't publicly browsable.
+    match /certificates/{certId} {
+      allow get: if true;
+      allow list: if isSignedIn() && (isAdmin());
+      allow create: if false; // certificates are issued by a trusted Cloud Function only
+      allow update, delete: if false;
+    }
+
+    // ---- resumes & portfolios ----
+    match /resumes/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+    match /portfolios/{uid} {
+      allow read: if resource.data.published == true || isOwner(uid);
+      allow write: if isOwner(uid);
+    }
+
+    // ---- public content: blog, careers, services, testimonials ----
+    match /blogPosts/{postId} {
+      allow read: if resource.data.published == true || isInstructor();
+      allow write: if isInstructor();
+    }
+    match /careers/{postId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /testimonials/{id} {
+      allow read: if resource.data.approved == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ---- inbound forms: anyone can create, only admin can read/manage ----
+    match /messages/{id} {
+      allow create: if request.resource.data.keys().hasAll(['name','email','subject','message']);
+      allow read, update, delete: if isAdmin();
+    }
+    match /services_inquiries/{id} {
+      allow create: if request.resource.data.keys().hasAll(['service','name','email']);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---- subscriptions / notifications ----
+    match /subscriptions/{uid} {
+      allow read, write: if isOwner(uid) || isAdmin();
+    }
+    match /notifications/{id} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Tutor — Kevcode_Cademy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .chat-wrap{ max-width:680px; margin:0 auto; padding:36px 0 60px; }
+  .chat-log{ display:flex; flex-direction:column; gap:14px; min-height:280px; margin-bottom:18px; }
+  .msg{ padding:12px 16px; border-radius:12px; font-size:14px; line-height:1.6; max-width:85%; }
+  .msg.user{ align-self:flex-end; background:var(--accent); color:#fff; }
+  .msg.ai{ align-self:flex-start; background:var(--panel); border:1px solid var(--line); }
+  .chat-input-row{ display:flex; gap:10px; }
+  .chat-input-row input{ flex:1; padding:12px 14px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; color:var(--ink); font-size:14px; }
+  .setup-banner{ background:rgba(229,168,62,.1); border:1px solid rgba(229,168,62,.3); color:var(--warn); padding:14px 16px; border-radius:10px; font-size:13px; margin-bottom:24px; line-height:1.6; }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <a class="wordmark" href="/index.html">Kevcode<span>_</span>Cademy</a>
+  <nav class="nav-links">
+    <ul>
+      <li><a href="/dashboard.html">Dashboard</a></li>
+      <li><a href="/courses.html">Courses</a></li>
+      <li><a href="/ai-tutor.html" class="active">AI Tutor</a></li>
+    </ul>
+    <div data-auth-slot></div>
+  </nav>
+</header>
+
+<main class="wrap chat-wrap">
+  <div class="section-title" style="font-size:24px;">AI Tutor</div>
+  <p class="section-sub">Ask a programming question, or ask for a concept explained a different way.</p>
+
+  <div class="setup-banner" id="setup-banner" style="display:none;">
+    The AI Tutor isn't connected yet. It calls a secure Cloud Function
+    (<code>askTutor</code>) that holds the AI API key server-side — see
+    <code>/functions/index.js</code> and the README for the exact deploy steps.
+    Nothing here will fabricate a response in the meantime.
+  </div>
+
+  <div class="chat-log" id="chat-log"></div>
+  <form class="chat-input-row" id="chat-form">
+    <input id="chat-input" type="text" placeholder="e.g. Why does my for-loop never end?" autocomplete="off">
+    <button class="btn btn-primary" type="submit" id="send-btn">Ask</button>
+  </form>
+</main>
+
+<script type="module">
+  import { initNav } from "/js/nav.js";
+  import { requireAuth } from "/js/auth.js";
+  initNav("/ai-tutor.html");
+
+  const log = document.getElementById("chat-log");
+  const form = document.getElementById("chat-form");
+  const input = document.getElementById("chat-input");
+  const sendBtn = document.getElementById("send-btn");
+  const banner = document.getElementById("setup-banner");
+
+  function addMsg(text, who){
+    const div = document.createElement("div");
+    div.className = "msg " + who;
+    div.textContent = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // The frontend NEVER holds an AI API key. It calls your deployed
+  // Cloud Function endpoint. Set this to your function's URL once deployed,
+  // e.g. https://us-central1-YOUR_PROJECT.cloudfunctions.net/askTutor
+  const TUTOR_ENDPOINT = ""; // ← set after deploying functions/index.js
+
+  requireAuth(async (user) => {
+    if (!TUTOR_ENDPOINT) banner.style.display = "block";
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    addMsg(text, "user");
+    input.value = "";
+
+    if (!TUTOR_ENDPOINT){
+      addMsg("The AI Tutor isn't connected yet — see the setup banner above.", "ai");
+      return;
+    }
+
+    sendBtn.disabled = true;
+    addMsg("Thinking…", "ai");
+    const thinkingEl = log.lastChild;
+    try {
+      const idToken = await window.__kcFirebaseUser?.getIdToken?.();
+      const res = await fetch(TUTOR_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) },
+        body: JSON.stringify({ question: text })
+      });
+      if (!res.ok) throw new Error("Bad response from tutor");
+      const data = await res.json();
+      thinkingEl.textContent = data.answer;
+    } catch (err) {
+      console.error(err);
+      thinkingEl.textContent = "The tutor couldn't respond right now. Please try again.";
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

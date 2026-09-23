@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — Kevcode_Cademy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .dash-head{ padding:40px 0 8px; }
+  .dash-head h1{ font-size:30px; }
+  .stats-row{ margin:24px 0 36px; }
+  .stat-num{ font-size:26px; font-weight:700; font-family:'Space Grotesk',sans-serif; }
+  .stat-label{ font-size:13px; color:var(--ink-dim); margin-top:4px; }
+  .course-row{ display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+  .course-row h3{ font-size:16px; }
+  .course-row .meta{ font-size:13px; color:var(--ink-dim); margin-top:4px; }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <a class="wordmark" href="/index.html">Kevcode<span>_</span>Cademy</a>
+  <nav class="nav-links">
+    <ul>
+      <li><a href="/dashboard.html" class="active">Dashboard</a></li>
+      <li><a href="/courses.html">Courses</a></li>
+      <li><a href="/certificates.html">Certificates</a></li>
+      <li><a href="/profile.html">Profile</a></li>
+    </ul>
+    <div data-auth-slot></div>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div class="dash-head">
+    <h1 id="welcome">Loading…</h1>
+    <div class="badge" id="role-badge" style="display:none;"></div>
+  </div>
+
+  <div class="grid grid-3 stats-row">
+    <div class="card">
+      <div class="stat-num" id="stat-enrolled">—</div>
+      <div class="stat-label">Courses enrolled</div>
+    </div>
+    <div class="card">
+      <div class="stat-num" id="stat-completed">—</div>
+      <div class="stat-label">Lessons completed</div>
+    </div>
+    <div class="card">
+      <div class="stat-num" id="stat-avg">—</div>
+      <div class="stat-label">Average progress</div>
+    </div>
+  </div>
+
+  <div class="section-title" style="font-size:22px;">Your courses</div>
+  <div id="courses-region">
+    <div class="loading-state"><div class="spinner"></div>Loading your courses…</div>
+  </div>
+</main>
+
+<script type="module">
+  import { initNav } from "/js/nav.js";
+  import { requireAuth } from "/js/auth.js";
+  import { getUserEnrollments, getCourse } from "/js/db.js";
+  initNav("/dashboard.html");
+
+  requireAuth(async (user, profile) => {
+    document.getElementById("welcome").textContent = `Welcome back, ${profile?.name || "there"} 👋`;
+    if (profile?.role && profile.role !== "student"){
+      const b = document.getElementById("role-badge");
+      b.style.display = "inline-block";
+      b.textContent = profile.role;
+      b.className = "badge badge-" + profile.role;
+    }
+
+    const region = document.getElementById("courses-region");
+    try {
+      const enrollments = await getUserEnrollments(user.uid);
+
+      document.getElementById("stat-enrolled").textContent = enrollments.length;
+      const totalCompleted = enrollments.reduce((sum, e) => sum + (e.completedLessonIds?.length || 0), 0);
+      document.getElementById("stat-completed").textContent = totalCompleted;
+      const avg = enrollments.length
+        ? Math.round(enrollments.reduce((s, e) => s + (e.progressPercent || 0), 0) / enrollments.length)
+        : 0;
+      document.getElementById("stat-avg").textContent = avg + "%";
+
+      if (!enrollments.length){
+        region.innerHTML = `
+          <div class="card empty-state">
+            <p>No courses enrolled yet.</p>
+            <a class="btn btn-primary" style="margin-top:16px;" href="/courses.html">Browse Courses</a>
+          </div>`;
+        return;
+      }
+
+      const courses = await Promise.all(enrollments.map(e => getCourse(e.courseId)));
+      region.innerHTML = "";
+      enrollments.forEach((e, i) => {
+        const c = courses[i];
+        const title = c?.title || "(course removed)";
+        const row = document.createElement("div");
+        row.className = "card course-row";
+        row.style.marginBottom = "12px";
+        row.innerHTML = `
+          <div style="flex:1; min-width:200px;">
+            <h3>${title}</h3>
+            <div class="meta">${e.progressPercent || 0}% complete</div>
+            <div class="progress-track"><div class="progress-fill" style="width:${e.progressPercent || 0}%"></div></div>
+          </div>
+          <a class="btn btn-primary btn-sm" href="/courses/${e.courseId}.html${e.lastLessonId ? '?lesson=' + e.lastLessonId : ''}">
+            ${e.lastLessonId ? "Continue Learning" : "Start Course"}
+          </a>`;
+        region.appendChild(row);
+      });
+    } catch (err) {
+      console.error(err);
+      region.innerHTML = `<div class="card error-state">We couldn't load your courses. Please try again.</div>`;
+    }
+  });
+</script>
+</body>
+</html>

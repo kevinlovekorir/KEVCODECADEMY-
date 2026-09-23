@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact — Kevcode_Cademy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>.contact-wrap{ max-width:520px; margin:0 auto; padding:50px 20px 80px; }</style>
+</head>
+<body>
+<header class="site-header">
+  <a class="wordmark" href="/index.html">Kevcode<span>_</span>Cademy</a>
+  <nav class="nav-links"><ul><li><a href="/contact.html" class="active">Contact</a></li></ul><div data-auth-slot></div></nav>
+</header>
+<main class="contact-wrap">
+  <div class="section-title" style="font-size:26px;">Get in touch</div>
+  <p class="section-sub">We read every message.</p>
+  <div class="form-msg" id="form-msg"></div>
+  <form id="contact-form" novalidate>
+    <div class="field" id="f-name"><label for="name">Name</label><input id="name" required><div class="field-error">Please enter your name.</div></div>
+    <div class="field" id="f-email"><label for="email">Email</label><input id="email" type="email" required><div class="field-error">Please enter a valid email.</div></div>
+    <div class="field" id="f-subject"><label for="subject">Subject</label><input id="subject" required><div class="field-error">Please enter a subject.</div></div>
+    <div class="field" id="f-message"><label for="message">Message</label><textarea id="message" rows="5" required></textarea><div class="field-error">Please enter a message.</div></div>
+    <div style="display:none;"><label>Leave blank<input id="hp-field" tabindex="-1" autocomplete="off"></label></div>
+    <button class="btn btn-primary" style="width:100%; justify-content:center;" id="submit-btn" type="submit">Send Message</button>
+  </form>
+</main>
+<script type="module">
+  import { initNav } from "/js/nav.js";
+  import { submitContactMessage } from "/js/db.js";
+  initNav("/contact.html");
+
+  const form = document.getElementById("contact-form");
+  const msg = document.getElementById("form-msg");
+  const btn = document.getElementById("submit-btn");
+  const showMsg = (t, type) => { msg.textContent = t; msg.className = "form-msg show " + type; };
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (document.getElementById("hp-field").value) return; // honeypot caught a bot
+
+    const fields = {
+      name: document.getElementById("name").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      subject: document.getElementById("subject").value.trim(),
+      message: document.getElementById("message").value.trim()
+    };
+    let ok = true;
+    Object.entries(fields).forEach(([k, v]) => {
+      const invalid = !v || (k === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
+      document.getElementById("f-" + k).classList.toggle("invalid", invalid);
+      if (invalid) ok = false;
+    });
+    if (!ok) return;
+
+    btn.disabled = true; btn.textContent = "Sending…";
+    try {
+      await submitContactMessage(fields);
+      showMsg("Message sent — we'll get back to you soon.", "success");
+      form.reset();
+    } catch (err) {
+      console.error(err);
+      showMsg("We couldn't send your message. Please try again.", "error");
+    } finally {
+      btn.disabled = false; btn.textContent = "Send Message";
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log In — Kevcode_Cademy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .auth-wrap{ max-width:400px; margin:60px auto; padding:0 20px; }
+  .auth-wrap h1{ font-size:28px; margin-bottom:6px; }
+  .auth-wrap .sub{ color:var(--ink-dim); font-size:14px; margin-bottom:28px; }
+  .switch-line{ text-align:center; margin-top:18px; font-size:14px; color:var(--ink-dim); }
+  .divider{ display:flex; align-items:center; gap:12px; margin:18px 0; color:var(--ink-dim); font-size:13px; }
+  .divider::before, .divider::after{ content:""; flex:1; height:1px; background:var(--line); }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <a class="wordmark" href="/index.html">Kevcode<span>_</span>Cademy</a>
+  <nav class="nav-links"><div data-auth-slot></div></nav>
+</header>
+
+<main>
+  <div class="auth-wrap">
+    <h1>Welcome back</h1>
+    <p class="sub">Log in to continue where you left off.</p>
+    <div class="form-msg" id="form-msg"></div>
+    <form id="login-form" novalidate>
+      <div class="field" id="f-email">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required>
+        <div class="field-error">Please enter a valid email.</div>
+      </div>
+      <div class="field" id="f-password">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <div class="field-error">Please enter your password.</div>
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;" id="submit-btn">Log In</button>
+    </form>
+    <div class="divider">or</div>
+    <button class="btn btn-ghost" id="google-btn" style="width:100%; justify-content:center;">Continue with Google</button>
+    <div class="switch-line">
+      <a href="/forgot-password.html" style="color:var(--accent)">Forgot password?</a>
+    </div>
+    <div class="switch-line">New here? <a href="/signup.html" style="color:var(--accent)">Create an account</a></div>
+  </div>
+</main>
+
+<script type="module">
+  import { initNav } from "/js/nav.js";
+  import { logIn, logInWithGoogle, friendlyAuthError } from "/js/auth.js";
+  initNav("/login.html");
+
+  const form = document.getElementById("login-form");
+  const msg = document.getElementById("form-msg");
+  const submitBtn = document.getElementById("submit-btn");
+  const params = new URLSearchParams(window.location.search);
+  const next = params.get("next") || "/dashboard.html";
+
+  function showMsg(text, type){
+    msg.textContent = text;
+    msg.className = "form-msg show " + type;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msg.classList.remove("show");
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password){
+      showMsg("Enter a valid email and password.", "error");
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Signing you in…";
+    try {
+      await logIn(email, password);
+      window.location.href = next;
+    } catch (err) {
+      showMsg(friendlyAuthError(err), "error");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Log In";
+    }
+  });
+
+  document.getElementById("google-btn").addEventListener("click", async () => {
+    try {
+      await logInWithGoogle();
+      window.location.href = next;
+    } catch (err) {
+      showMsg(friendlyAuthError(err), "error");
+    }
+  });
+</script>
+</body>
+</html>

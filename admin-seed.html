@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Seed Sample Data — Kevcode_Cademy</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>.wrap2{ max-width:560px; margin:60px auto; padding:0 20px; }</style>
+</head>
+<body>
+<header class="site-header"><a class="wordmark" href="/index.html">Kevcode<span>_</span>Cademy</a><nav class="nav-links"><div data-auth-slot></div></nav></header>
+<main class="wrap2">
+  <div class="section-title" style="font-size:22px;">Seed sample courses</div>
+  <p class="section-sub">Admin-only. Writes 4 clearly-labeled SAMPLE courses to Firestore so /courses.html has something to show while you add real content. Safe to run once; re-running just overwrites the same sample docs.</p>
+  <div class="form-msg" id="msg"></div>
+  <button class="btn btn-primary" id="seed-btn">Seed Sample Courses</button>
+</main>
+<script type="module">
+  import { initNav } from "/js/nav.js";
+  import { requireAdmin } from "/js/auth.js";
+  import { db } from "/js/firebase-config.js";
+  import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  initNav("");
+
+  const msg = document.getElementById("msg");
+  const btn = document.getElementById("seed-btn");
+  const show = (t, type) => { msg.textContent = t; msg.className = "form-msg show " + type; };
+
+  requireAdmin(() => { btn.disabled = false; }, () => {
+    document.querySelector("main").innerHTML = `<div class="card error-state">Admins only.</div>`;
+  });
+
+  const SAMPLE_COURSES = [
+    { id: "sample-web-foundations", title: "[SAMPLE] Web Foundations", description: "HTML, CSS and JavaScript from zero to your first deployed page.", category: "Web Development", difficulty: "Beginner", published: true },
+    { id: "sample-python-data", title: "[SAMPLE] Python for Data", description: "Python fundamentals through Pandas and your first chart.", category: "AI & Data Science", difficulty: "Beginner", published: true },
+    { id: "sample-security-basics", title: "[SAMPLE] Security Fundamentals", description: "Core concepts every developer needs before writing secure code.", category: "Cybersecurity", difficulty: "Beginner", published: true },
+    { id: "sample-react-app", title: "[SAMPLE] Building with React", description: "Componentize a real app and connect it to an API.", category: "Web Development", difficulty: "Intermediate", published: true }
+  ];
+
+  btn.addEventListener("click", async () => {
+    btn.disabled = true; btn.textContent = "Seeding…";
+    try {
+      await Promise.all(SAMPLE_COURSES.map(c => setDoc(doc(db, "courses", c.id), c)));
+      show("Sample courses added. Visit /courses.html to see them.", "success");
+    } catch (err) {
+      console.error(err);
+      show("Seeding failed — check the console and your Firestore rules.", "error");
+    } finally {
+      btn.disabled = false; btn.textContent = "Seed Sample Courses";
+    }
+  });
+</script>
+</body>
+</html>

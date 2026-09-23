@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kevcode_Cademy — Build Your Future With Technology</title>
+<meta name="description" content="Kevcode_Cademy is a technology education platform: learn Web Development, AI, Cybersecurity and more through real projects.">
+<meta property="og:title" content="Kevcode_Cademy">
+<meta property="og:description" content="Learn. Build. Innovate.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  #hero{ padding:120px 24px 90px; text-align:center; }
+  #hero h1{ font-size:clamp(36px,6vw,72px); line-height:1.06; font-weight:700; }
+  #hero p{ margin:20px auto 0; max-width:540px; color:var(--ink-dim); font-size:18px; line-height:1.6; }
+  .cta-row{ margin-top:32px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  .tracks{ padding:60px 0 90px; }
+  .track-card h3{ font-size:20px; margin-bottom:8px; }
+  .track-card p{ color:var(--ink-dim); font-size:14px; line-height:1.6; }
+  .track-card{ display:flex; flex-direction:column; gap:0; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="wordmark" href="/index.html">Kevcode<span>_</span>Cademy</a>
+  <nav class="nav-links">
+    <ul>
+      <li><a href="/courses.html">Courses</a></li>
+      <li><a href="/ai-tutor.html">AI Tutor</a></li>
+      <li><a href="/services.html">Services</a></li>
+      <li><a href="/careers.html">Careers</a></li>
+      <li><a href="/about.html">About</a></li>
+      <li><a href="/contact.html">Contact</a></li>
+    </ul>
+    <div data-auth-slot style="display:flex; gap:10px; align-items:center;"></div>
+  </nav>
+  <button class="hamburger" aria-label="Menu">☰</button>
+</header>
+<div class="mobile-menu">
+  <a href="/courses.html">Courses</a>
+  <a href="/ai-tutor.html">AI Tutor</a>
+  <a href="/services.html">Services</a>
+  <a href="/careers.html">Careers</a>
+  <a href="/about.html">About</a>
+  <a href="/contact.html">Contact</a>
+  <div data-auth-slot style="display:flex; gap:10px; flex-direction:column; margin-top:12px;"></div>
+</div>
+
+<main>
+  <section id="hero">
+    <h1>Build your future<br>with technology.</h1>
+    <p>Practical courses, an AI tutor, and real projects that turn beginners into builders — then connect what you build to real opportunities.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/signup.html">Start Learning</a>
+      <a class="btn btn-ghost" href="/courses.html">Explore Courses</a>
+    </div>
+  </section>
+
+  <section class="tracks wrap">
+    <div class="section-title">Learn what the industry actually uses</div>
+    <p class="section-sub">Every track is built around shipping something real, not just watching videos.</p>
+    <div class="grid grid-3">
+      <div class="card track-card"><h3>Web Development</h3><p>HTML, CSS, JavaScript, React and Git through full-stack projects.</p></div>
+      <div class="card track-card"><h3>AI &amp; Data Science</h3><p>Python, statistics, Pandas, and machine learning fundamentals.</p></div>
+      <div class="card track-card"><h3>Cybersecurity</h3><p>Network security, secure coding, and ethical hacking concepts.</p></div>
+      <div class="card track-card"><h3>Mobile Development</h3><p>Android and iOS fundamentals, mobile UI/UX, and deployment.</p></div>
+      <div class="card track-card"><h3>DevOps</h3><p>Linux, Git, Docker, CI/CD and cloud deployment basics.</p></div>
+      <div class="card track-card"><h3>Freelancing &amp; Career</h3><p>Portfolios, proposals, pricing, and building client relationships.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wordmark">Kevcode<span>_</span>Cademy</div>
+  <div class="foot-links">
+    <a href="/courses.html">Courses</a>
+    <a href="/projects.html">Projects</a>
+    <a href="/careers.html">Careers</a>
+    <a href="/about.html">About</a>
+    <a href="/blog.html">Blog</a>
+    <a href="/contact.html">Contact</a>
+  </div>
+  <div class="copyright">Learn. Build. Innovate. — © 2026 Kevcode_Cademy. All rights reserved.</div>
+</footer>
+
+<script type="module">
+  import { initNav } from "/js/nav.js";
+  initNav("/index.html");
+</script>
+</body>
+</html>

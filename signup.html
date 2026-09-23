@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign Up — Kevcode_Cademy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .auth-wrap{ max-width:400px; margin:60px auto; padding:0 20px; }
+  .auth-wrap h1{ font-size:28px; margin-bottom:6px; }
+  .auth-wrap .sub{ color:var(--ink-dim); font-size:14px; margin-bottom:28px; }
+  .switch-line{ text-align:center; margin-top:18px; font-size:14px; color:var(--ink-dim); }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <a class="wordmark" href="/index.html">Kevcode<span>_</span>Cademy</a>
+  <nav class="nav-links"><div data-auth-slot></div></nav>
+</header>
+
+<main>
+  <div class="auth-wrap">
+    <h1>Create your account</h1>
+    <p class="sub">Start learning in under a minute.</p>
+    <div class="form-msg" id="form-msg"></div>
+    <form id="signup-form" novalidate>
+      <div class="field" id="f-name">
+        <label for="name">Full name</label>
+        <input id="name" name="name" type="text" autocomplete="name" required>
+        <div class="field-error">Please enter your name.</div>
+      </div>
+      <div class="field" id="f-email">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required>
+        <div class="field-error">Please enter a valid email.</div>
+      </div>
+      <div class="field" id="f-password">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required>
+        <div class="field-error">Password must be at least 6 characters.</div>
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;" id="submit-btn">
+        Create Account
+      </button>
+    </form>
+    <div class="switch-line">Already have an account? <a href="/login.html" style="color:var(--accent)">Log in</a></div>
+  </div>
+</main>
+
+<script type="module">
+  import { initNav } from "/js/nav.js";
+  import { signUp, friendlyAuthError } from "/js/auth.js";
+  initNav("/signup.html");
+
+  const form = document.getElementById("signup-form");
+  const msg = document.getElementById("form-msg");
+  const submitBtn = document.getElementById("submit-btn");
+
+  function showMsg(text, type){
+    msg.textContent = text;
+    msg.className = "form-msg show " + type;
+  }
+  function validate(){
+    let ok = true;
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const setInvalid = (id, invalid) => document.getElementById(id).classList.toggle("invalid", invalid);
+
+    setInvalid("f-name", !name); if (!name) ok = false;
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    setInvalid("f-email", !emailOk); if (!emailOk) ok = false;
+    setInvalid("f-password", password.length < 6); if (password.length < 6) ok = false;
+    return ok;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msg.classList.remove("show");
+    if (!validate()) return;
+
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Creating your account…";
+    try {
+      await signUp(name, email, password);
+      showMsg("Account created! Redirecting to your dashboard…", "success");
+      setTimeout(() => window.location.href = "/dashboard.html", 900);
+    } catch (err) {
+      showMsg(friendlyAuthError(err), "error");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Create Account";
+    }
+  });
+</script>
+</body>
+</html>

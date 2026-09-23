@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Courses — Kevcode_Cademy</title>
+<meta name="description" content="Browse Kevcode_Cademy courses in Web Development, AI, Cybersecurity, Mobile Development and more.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .filters{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:28px; }
+  .filters select, .filters input{
+    padding:9px 12px; background:var(--panel2); border:1px solid var(--line); border-radius:8px;
+    color:var(--ink); font-size:14px;
+  }
+  .filters input{ flex:1; min-width:200px; }
+  .course-card h3{ font-size:18px; margin-bottom:6px; }
+  .course-card p{ color:var(--ink-dim); font-size:14px; line-height:1.55; margin-bottom:14px; }
+  .course-tags{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .tag{ font-size:11px; padding:3px 9px; border-radius:99px; background:var(--panel2); color:var(--ink-dim); }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <a class="wordmark" href="/index.html">Kevcode<span>_</span>Cademy</a>
+  <nav class="nav-links">
+    <ul>
+      <li><a href="/courses.html" class="active">Courses</a></li>
+      <li><a href="/ai-tutor.html">AI Tutor</a></li>
+      <li><a href="/services.html">Services</a></li>
+      <li><a href="/careers.html">Careers</a></li>
+    </ul>
+    <div data-auth-slot></div>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div class="dash-head" style="padding:40px 0 8px;">
+    <div class="section-title">Courses</div>
+    <p class="section-sub">Every course is project-based. Enroll and your progress is saved to your account.</p>
+  </div>
+
+  <div class="filters">
+    <input id="search-input" type="text" placeholder="Search courses…">
+    <select id="category-filter">
+      <option value="">All categories</option>
+      <option value="Web Development">Web Development</option>
+      <option value="AI &amp; Data Science">AI &amp; Data Science</option>
+      <option value="Cybersecurity">Cybersecurity</option>
+      <option value="Mobile Development">Mobile Development</option>
+      <option value="DevOps">DevOps</option>
+    </select>
+    <select id="difficulty-filter">
+      <option value="">All levels</option>
+      <option value="Beginner">Beginner</option>
+      <option value="Intermediate">Intermediate</option>
+      <option value="Advanced">Advanced</option>
+    </select>
+  </div>
+
+  <div id="courses-region">
+    <div class="loading-state"><div class="spinner"></div>Loading courses…</div>
+  </div>
+</main>
+
+<script type="module">
+  import { initNav } from "/js/nav.js";
+  import { watchAuth } from "/js/auth.js";
+  import { listCourses, enrollInCourse, getUserEnrollments } from "/js/db.js";
+  initNav("/courses.html");
+
+  let currentUser = null;
+  let enrolledIds = new Set();
+  let allCourses = [];
+
+  const region = document.getElementById("courses-region");
+
+  function render(){
+    const q = document.getElementById("search-input").value.toLowerCase().trim();
+    const cat = document.getElementById("category-filter").value;
+    const diff = document.getElementById("difficulty-filter").value;
+
+    const filtered = allCourses.filter(c => {
+      if (cat && c.category !== cat) return false;
+      if (diff && c.difficulty !== diff) return false;
+      if (q && !(`${c.title} ${c.description}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+
+    if (!allCourses.length){
+      region.innerHTML = `<div class="card empty-state">
+        No courses published yet. Check back soon, or if you're an admin, add courses via Firestore.
+      </div>`;
+      return;
+    }
+    if (!filtered.length){
+      region.innerHTML = `<div class="card empty-state">No courses match your filters.</div>`;
+      return;
+    }
+
+    region.innerHTML = "";
+    const grid = document.createElement("div");
+    grid.className = "grid grid-3";
+    filtered.forEach(c => {
+      const enrolled = enrolledIds.has(c.id);
+      const card = document.createElement("div");
+      card.className = "card course-card";
+      card.innerHTML = `
+        <div class="course-tags">
+          <span class="tag">${c.category || "General"}</span>
+          <span class="tag">${c.difficulty || "Beginner"}</span>
+        </div>
+        <h3>${c.title}</h3>
+        <p>${c.description || ""}</p>
+        <button class="btn ${enrolled ? "btn-ghost" : "btn-primary"} btn-sm enroll-btn" data-id="${c.id}">
+          ${enrolled ? "Go to Course" : "Enroll"}
+        </button>`;
+      grid.appendChild(card);
+    });
+    region.appendChild(grid);
+
+    region.querySelectorAll(".enroll-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const courseId = btn.dataset.id;
+        if (!currentUser){
+          window.location.href = "/login.html?next=/courses.html";
+          return;
+        }
+        if (enrolledIds.has(courseId)){
+          window.location.href = `/courses/${courseId}.html`;
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = "Enrolling…";
+        try {
+          await enrollInCourse(currentUser.uid, courseId);
+          enrolledIds.add(courseId);
+          render();
+        } catch (err) {
+          console.error(err);
+          btn.disabled = false;
+          btn.textContent = "Enroll";
+          alert("We couldn't enroll you right now. Please try again.");
+        }
+      });
+    });
+  }
+
+  ["search-input", "category-filter", "difficulty-filter"].forEach(id => {
+    document.getElementById(id).addEventListener("input", render);
+  });
+
+  watchAuth(async (user) => {
+    currentUser = user;
+    if (user){
+      const enrollments = await getUserEnrollments(user.uid);
+      enrolledIds = new Set(enrollments.map(e => e.courseId));
+    }
+    render();
+  });
+
+  listCourses()
+    .then(courses => { allCourses = courses; render(); })
+    .catch(err => {
+      console.error(err);
+      region.innerHTML = `<div class="card error-state">We couldn't load courses. Please try again.</div>`;
+    });
+</script>
+</body>
+</html>
